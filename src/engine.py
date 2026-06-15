@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None, output_dir="outputs"):
     
     if class_weights is not None:
         class_weights = class_weights.to(device)
