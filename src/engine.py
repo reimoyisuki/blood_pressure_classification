@@ -34,8 +34,8 @@ class EarlyStopping:
 def train_model(model, train_loader, val_loader, device, output_dir, epochs=50, lr=1e-3):
     # Masukkan output_dir ke EarlyStopping
     early_stopping = EarlyStopping(output_dir=output_dir, patience=7, min_delta=0.001)
-    
-    weights = torch.tensor([1.0, 15.0]).to(device)
+
+    weights = torch.tensor([1.0, 5.0, 15.0]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 

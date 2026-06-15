@@ -10,8 +10,8 @@ class CNN_LSTM_Classifier(nn.Module):
         
         self.lstm = nn.LSTM(32, 64, batch_first=True, bidirectional=True)
         
-        # Output layer untuk 2 Kelas (0 = Normal, 1 = Hipertensi)
-        self.fc = nn.Linear(128, 2)    
+        # Output layer untuk 3 Kelas (0 = Normal, 1 = Hipertensi I, 2 = Hipertensi II)
+        self.fc = nn.Linear(128, 3)    
 
     def forward(self, x):
         x = self.pool(self.relu(self.conv1(x)))

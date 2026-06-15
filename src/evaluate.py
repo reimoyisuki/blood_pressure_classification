@@ -23,8 +23,8 @@ def evaluate_and_plot_metrics(model, test_loader, device, output_dir):
     cm = confusion_matrix(all_targets, all_preds)
     plt.figure(figsize=(7, 5))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=['Normal/Pre (0)', 'Hipertensi (1)'], 
-                yticklabels=['Normal/Pre (0)', 'Hipertensi (1)'],
+                xticklabels=['Normal/Pre (0)', 'Hipertensi (1)', 'Hyp II (2)'], 
+                yticklabels=['Normal/Pre (0)', 'Hipertensi (1)', 'Hyp II (2)'],
                 annot_kws={"size": 16})
     plt.xlabel('Prediksi AI', fontsize=12)
     plt.ylabel('Label Faktual', fontsize=12)
@@ -40,7 +40,7 @@ def evaluate_and_plot_metrics(model, test_loader, device, output_dir):
     # Gunakan output_dict=True agar hasil berbentuk dictionary
     report_dict = classification_report(
         all_targets, all_preds, 
-        target_names=['Normal/Pre (0)', 'Hipertensi (1)'], 
+        target_names=['Normal/Pre (0)', 'Hipertensi (1)', 'Hyp II (2)'], 
         output_dict=True
     )
     

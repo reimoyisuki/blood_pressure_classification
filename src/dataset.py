@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from src.preprocessing import preprocess_ppg
+from sklearn.model_selection import train_test_split
 
 class PPGClassificationDataset(Dataset):
     def __init__(self, signals, labels):
@@ -40,23 +41,41 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
             processed = preprocess_ppg(ppg_data[idx])
             sbp, dbp = labels_data[idx]
             
-            # RULE KLASIFIKASI: 1 = Hipertensi, 0 = Normal / Pre
-            label_class = 1 if (sbp >= 140 or dbp >= 90) else 0
+            # RULE KLASIFIKASI 3 RENTANG
+            if sbp < 130 and dbp < 80:
+                label_class = 0 # Normal
+            elif (130 <= sbp < 140) or (80 <= dbp < 90):
+                label_class = 1 # Hipertensi I
+            else:
+                label_class = 2 # Hipertensi II
             
             signals.append(processed)
             labels.append(label_class)
 
-    print(f"Total sinyal berhasil dimuat: {len(signals)}")
+    # Print Statistik Data Keseluruhan (Sebelum di-split)
+    print("="*40)
+    print(" STATISTIK DATA KESELURUHAN (POPULASI) ")
+    print("="*40)
+    print(f"Total Segmen Sinyal : {len(signals)}")
+    print(f"Normal (0)          : {labels.count(0)}")
+    print(f"Hipertensi I (1)    : {labels.count(1)}")
+    print(f"Hipertensi II (2)   : {labels.count(2)}")
+    print("="*40)
     
-    total_data = len(signals)
-    train_ratio = 1.0 - val_split - test_split
-    train_split_idx = int(train_ratio * total_data)
-    val_split_idx = int(val_split * total_data)
+    # STRATIFIED SPLIT
+    # Pisahkan Train (70%) dengan sisa Val+Test (30%)
+    test_val_ratio = val_split + test_split
+    train_signals, temp_signals, train_labels, temp_labels = train_test_split(
+        signals, labels, test_size=test_val_ratio, stratify=labels, random_state=42
+    )
 
-    train_signals, train_labels = signals[:train_split_idx], labels[:train_split_idx]
-    val_signals, val_labels = signals[train_split_idx : train_split_idx + val_split_idx], labels[train_split_idx : train_split_idx + val_split_idx]
-    test_signals, test_labels = signals[train_split_idx + val_split_idx :], labels[train_split_idx + val_split_idx :]
+    # Pisahkan sisa data (Temp) menjadi Val (15%) dan Test (15%) -> Proporsi 50:50 dari sisa
+    test_ratio_from_temp = test_split / test_val_ratio
+    val_signals, test_signals, val_labels, test_labels = train_test_split(
+        temp_signals, temp_labels, test_size=test_ratio_from_temp, stratify=temp_labels, random_state=42
+    )
 
+    # Masukkan ke Dataset & DataLoader
     train_dataset = PPGClassificationDataset(train_signals, train_labels)
     val_dataset = PPGClassificationDataset(val_signals, val_labels)
     test_dataset = PPGClassificationDataset(test_signals, test_labels)
