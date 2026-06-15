@@ -1,7 +1,7 @@
 import os
 import torch
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from src.preprocessing import preprocess_ppg
 from sklearn.model_selection import train_test_split
 
@@ -73,7 +73,12 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
     val_dataset = PPGClassificationDataset(val_signals, val_labels)
     test_dataset = PPGClassificationDataset(test_signals, test_labels)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Buat sampler seimbang: oversample kelas minoritas agar model melihatnya lebih sering
+    sample_weights = [1.0 / class_counts[label] for label in train_labels]
+    sample_weights = torch.DoubleTensor(sample_weights)
+    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 

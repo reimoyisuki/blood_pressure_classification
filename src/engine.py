@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None, output_dir="outputs"):
     
     if class_weights is not None:
         class_weights = class_weights.to(device)
@@ -74,8 +74,9 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             patience_counter = 0
-            os.makedirs("/content/drive/MyDrive/Dataset_Magang/outputs", exist_ok=True)
-            torch.save(model.state_dict(), "/content/drive/MyDrive/Dataset_Magang/outputs/bp_classifier_model.pth")
+            os.makedirs(output_dir, exist_ok=True)
+            save_path = os.path.join(output_dir, "bp_classifier_model.pth")
+            torch.save(model.state_dict(), save_path)
         else:
             patience_counter += 1
             
