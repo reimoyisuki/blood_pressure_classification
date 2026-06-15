@@ -33,19 +33,22 @@ class EarlyStopping:
 
 def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
     
-    # Masukkan bobot hukuman ke Loss Function
     if class_weights is not None:
         class_weights = class_weights.to(device)
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     else:
         criterion = nn.CrossEntropyLoss()
         
-    # Gunakan AdamW karena lebih stabil dari Adam biasa untuk sinyal
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     
     best_val_loss = float('inf')
     patience = 5
     patience_counter = 0
+    
+    train_losses = []
+    val_losses = []
+    train_accuracies = []
+    val_accuracies = []
 
     for epoch in range(epochs):
         # TRAIN
