@@ -1,6 +1,3 @@
-# blood_pressure_classification
-
-
 # Klasifikasi Tingkat Tekanan Darah Berbasis Sinyal Photoplethysmogram (PPG)
 
 Repositori ini berisi implementasi model pembelajaran mendalam (Deep Learning) dengan arsitektur gabungan Convolutional Neural Network (CNN) dan Long Short-Term Memory (LSTM) untuk melakukan klasifikasi tingkat tekanan darah (hipertensi vs. normal/prehipertensi) secara langsung dari sinyal mentah Photoplethysmogram (PPG). Proyek ini dirancang secara modular agar mudah dikembangkan, diintegrasikan ke perangkat berbasis komputasi tepi (edge computing), serta dijalankan secara fleksibel di lingkungan seperti Google Colab.
@@ -10,13 +7,13 @@ Repositori ini berisi implementasi model pembelajaran mendalam (Deep Learning) d
 Pemantauan tekanan darah secara berkelanjutan dan non-invasif menjadi fokus krusial dalam rekayasa biomedis modern. Berbeda dengan pendekatan regresi konvensional yang memprediksi nilai numerik sistolik (SBP) dan diastolik (DBP) secara absolut, proyek ini menerapkan pendekatan klasifikasi biner untuk mendeteksi indikasi klinis hipertensi berdasarkan pola gelombang PPG.
 
 Sinyal masukan diklasifikasikan menjadi dua kategori utama:
+
 1. Kelas 0 (Normal / Prehypertension): Kondisi di mana nilai SBP < 140 mmHg DAN DBP < 90 mmHg.
 2. Kelas 1 (Hypertension): Kondisi di mana nilai SBP >= 140 mmHg ATAU DBP >= 90 mmHg (mencakup Hipertensi Stadium I dan Stage II).
 
 ## Struktur Repositori
 
 Proyek ini disusun menggunakan arsitektur pipeline modular untuk memisahkan setiap fungsionalitas logika pemrograman, sehingga mempermudah proses debugging, pengujian komponen secara terisolasi, dan kolaborasi tim:
-
 
 ```
 
@@ -53,28 +50,27 @@ Proyek ini menggunakan dataset publik MIMIC-BP yang tersedia di Harvard Datavers
 Alur kerja pemrograman di dalam repositori ini mencakup tahapan sekuensial berikut:
 
 1. **Pre-processing Sinyal (src/preprocessing.py)**
+
 * **Bandpass Filtering**: Menerapkan filter Butterworth order 3 dengan rentang frekuensi cut-off 0.5 Hz hingga 8 Hz untuk mereduksi interferensi frekuensi tinggi serta artefak pergerakan otot.
 * **Baseline Correction**: Menggunakan metode detrend linear untuk menghilangkan fluktuasi garis dasar (baseline drift) akibat pernapasan atau pergeseran posisi sensor pada kulit.
 * **Z-score Normalization**: Menormalisasi amplitudo sinyal agar memiliki rata-rata nol dan standar deviasi satu untuk mempercepat konvergensi pelatihan model.
 
-
 2. **Penyusunan Dataset (src/dataset.py)**
+
 * Membaca seluruh file pasien, menjodohkan file sinyal dengan labelnya, dan mengonversi nilai kontinu SBP/DBP menjadi label kelas integer (0 atau 1) secara otomatis.
 * Membagi data secara proporsional menjadi 70% Data Pelatihan (Train), 15% Data Validasi (Validation), dan 15% Data Pengujian (Test).
 
-
 3. **Arsitektur Model AI (src/model.py)**
+
 * **Lapis Konvolusi 1D (Conv1D)**: Mengekstraksi fitur spasial lokal dan morfologi gelombang pulsa PPG menggunakan kernel berukuran 7.
 * **Lapis LSTM**: Menangkap ketergantungan urutan waktu jangka panjang (sekuensial temporal) dari fitur gelombang yang dihasilkan oleh CNN.
 * **Lapis Fully Connected (FC)**: Memetakan representasi fitur temporal terakhir dari sirkuit LSTM menjadi dua probabilitas kelas keluaran menggunakan fungsi CrossEntropy.
 
-
 4. **Mesin Pelatihan dan Pengujian (src/engine.py & src/evaluate.py)**
+
 * Mengoptimasi parameter bobot menggunakan Adam Optimizer dan meminimalkan kerugian lewat Cross Entropy Loss Function.
 * Mengintegrasikan fungsi Early Stopping untuk memantau nilai kerugian validasi (validation loss) guna menghindari kondisi overfitting dan menghentikan pelatihan secara adaptif saat model terbaik tercapai.
 * Menghasilkan visualisasi Confusion Matrix serta laporan performa klasifikasi secara komprehensif.
-
-
 
 ## Kebutuhan Sistem dan Instalasi
 
@@ -100,16 +96,17 @@ pip install numpy scipy torch scikit-learn seaborn matplotlib
 Repositori ini dioptimasi penuh agar dapat dijalankan langsung di Google Colab dengan memanfaatkan akselerator T4 GPU. Berikut adalah urutan langkah eksekusinya:
 
 1. **Kloning Repositori GitHub**
-Unduh struktur folder kode ini ke dalam ruang kerja Colab Anda:
+   Unduh struktur folder kode ini ke dalam ruang kerja Colab Anda:
+
 ```python
 !git clone <URL_REPOSITORY_GITHUB_ANDA>
 %cd blood_pressure_classification
 
 ```
 
-
 2. **Ekstrak Dataset dari Google Drive**
-Untuk mencegah perlambatan browser akibat mengunggah ribuan file kecil `.npy` secara manual, unggah file `ppg.zip` dan `labels.zip` yang didapat dari Harvard Dataverse ke Google Drive Anda terlebih dahulu. Sambungkan Drive ke Colab, lalu jalankan perintah ekstraksi otomatis ini untuk menyatukan berkas ke folder target:
+   Untuk mencegah perlambatan browser akibat mengunggah ribuan file kecil `.npy` secara manual, unggah file `ppg.zip` dan `labels.zip` yang didapat dari Harvard Dataverse ke Google Drive Anda terlebih dahulu. Sambungkan Drive ke Colab, lalu jalankan perintah ekstraksi otomatis ini untuk menyatukan berkas ke folder target:
+
 ```python
 from google.colab import drive
 drive.mount('/content/drive')
@@ -121,15 +118,13 @@ print("Proses penyatuan berkas selesai. Seluruh file npy berada di data/raw/")
 
 ```
 
-
 3. **Jalankan Proses Pelatihan dan Evaluasi**
-Eksekusi skrip utama orkestrator untuk memulai siklus pembelajaran kecerdasan buatan:
+   Eksekusi skrip utama orkestrator untuk memulai siklus pembelajaran kecerdasan buatan:
+
 ```bash
 !python main_train.py
 
 ```
-
-
 
 ## Metrik Evaluasi
 
@@ -140,5 +135,4 @@ Model akhir dievaluasi secara ketat menggunakan parameter penilaian matriks kebi
 * **F1-Score**: Rata-rata harmonis antara presisi dan recall, yang menjadi indikator performa paling andal jika distribusi jumlah sampel kelas normal dan hipertensi tidak seimbang.
 * **Specificity**: Mengukur tingkat keberhasilan model dalam mengidentifikasi subjek yang benar-benar sehat/normal.
 * **Accuracy**: Rasio ketepatan prediksi total terhadap keseluruhan data uji yang tersedia.
-"""
-
+  """
