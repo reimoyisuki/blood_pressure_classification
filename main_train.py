@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # 3. TRAINING
     print("\n--- 3. Memulai Proses Training ---")
     train_loss, val_loss, train_acc, val_acc = train_model(
-        model, train_loader, val_loader, device, epochs=50, lr=5e-5, class_weights=class_weights,
+        model, train_loader, val_loader, device, epochs=50, lr=3e-4, class_weights=class_weights,
         output_dir=DRIVE_OUTPUT_DIR
     )
     

@@ -47,9 +47,14 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
             signals.append(processed)
             labels.append(label_class)
 
-    manual_weights = np.array([1.0, 2.0, 3.0])
-    class_weights_tensor = torch.tensor(manual_weights, dtype=torch.float32)
-
+    class_counts = np.array([labels.count(0), labels.count(1), labels.count(2)])
+    total_samples = len(labels)
+    
+    balanced_weights = total_samples / (3.0 * class_counts)
+    class_weights_tensor = torch.tensor(balanced_weights, dtype=torch.float32)
+    
+    print(f"\n[INFO] Bobot Hukuman AI: Normal={balanced_weights[0]:.2f}, Hyp I={balanced_weights[1]:.2f}, Hyp II={balanced_weights[2]:.2f}\n")
+    
     test_val_ratio = val_split + test_split
     train_signals, temp_signals, train_labels, temp_labels = train_test_split(
         signals, labels, test_size=test_val_ratio, stratify=labels, random_state=42
