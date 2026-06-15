@@ -31,7 +31,7 @@ class EarlyStopping:
         torch.save(model.state_dict(), save_path)
         print(f" -> Model terbaik ditemukan & disimpan ke Drive! (Val Loss: {self.best_loss:.4f})")
 
-def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None, output_dir="outputs"):
     
     if class_weights is not None:
         class_weights = class_weights.to(device)
@@ -49,6 +49,7 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
     val_losses = []
     train_accuracies = []
     val_accuracies = []
+    early_stopping = EarlyStopping(output_dir)
 
     for epoch in range(epochs):
         # TRAIN
@@ -87,8 +88,8 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
 
         train_losses.append(train_loss / len(train_loader))
         val_losses.append(avg_val_loss)
-        train_accs.append(train_acc)
-        val_accs.append(val_acc)
+        train_accuracies.append(train_acc)
+        val_accuracies.append(val_acc)
 
         print(f"Epoch {epoch+1}/{epochs} | "f"Loss: [Tr {train_losses[-1]:.4f}, Val {avg_val_loss:.4f}] | "f"Acc: [Tr {train_acc*100:.2f}%, Val {val_acc*100:.2f}%]")
 
@@ -97,4 +98,4 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
             print(f"Early stopping aktif pada epoch {epoch+1}!")
             break
 
-    return train_losses, val_losses, train_accs, val_accs
+    return train_losses, val_losses, train_accuracies, val_accuracies
