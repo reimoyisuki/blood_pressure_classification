@@ -14,7 +14,7 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     
     # LR Scheduler untuk ngerem saat loss mulai stuck
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     
     best_val_loss = float('inf')
     patience = 15 
