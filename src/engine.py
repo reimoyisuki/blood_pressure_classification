@@ -3,35 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-class EarlyStopping:
-    def __init__(self, output_dir, patience=7, min_delta=0):
-        self.output_dir = output_dir
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_loss = None
-        self.early_stop = False
-
-    def __call__(self, val_loss, model):
-        if self.best_loss is None:
-            self.best_loss = val_loss
-            self.save_checkpoint(model)
-        elif val_loss > self.best_loss - self.min_delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_loss = val_loss
-            self.save_checkpoint(model)
-            self.counter = 0
-
-    def save_checkpoint(self, model):
-        os.makedirs(self.output_dir, exist_ok=True)
-        save_path = os.path.join(self.output_dir, "bp_classifier_model.pth")
-        torch.save(model.state_dict(), save_path)
-        print(f" -> Model terbaik ditemukan & disimpan ke Drive! (Val Loss: {self.best_loss:.4f})")
-
-def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None, output_dir="outputs"):
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
     
     if class_weights is not None:
         class_weights = class_weights.to(device)
@@ -42,60 +14,73 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     
     best_val_loss = float('inf')
-    patience = 5
+    patience = 6 # Naikkan sedikit agar tidak terlalu cepat berhenti
     patience_counter = 0
     
-    train_losses = []
-    val_losses = []
-    train_accuracies = []
-    val_accuracies = []
-    early_stopping = EarlyStopping(output_dir)
+    # Inisialisasi wadah metrik
+    train_losses, val_losses = [], []
+    train_accuracies, val_accuracies = [], []
 
     for epoch in range(epochs):
-        # TRAIN
         model.train()
-        train_loss, correct_train, total_train = 0, 0, 0
-        for x, y in train_loader:
-            x, y = x.to(device), y.to(device)
+        running_loss = 0.0
+        correct = 0
+        total = 0
+        
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            
             optimizer.zero_grad()
-            outputs = model(x)
-            loss = criterion(outputs, y)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            
             loss.backward()
             optimizer.step()
             
-            train_loss += loss.item()
-            _, preds = torch.max(outputs, 1)
-            correct_train += torch.sum(preds == y.data).item()
-            total_train += len(y)
-
-        # VALIDATION
+            running_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            
+        train_loss = running_loss / len(train_loader)
+        train_acc = 100 * correct / total
+        
         model.eval()
-        val_loss, correct_val, total_val = 0, 0, 0
+        val_loss = 0.0
+        correct_val = 0
+        total_val = 0
+        
         with torch.no_grad():
-            for x, y in val_loader:
-                x, y = x.to(device), y.to(device)
-                outputs = model(x)
-                loss = criterion(outputs, y)
-                val_loss += loss.item()
+            for inputs, labels in val_loader:
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
                 
-                _, preds = torch.max(outputs, 1)
-                correct_val += torch.sum(preds == y.data).item()
-                total_val += len(y)
-
-        avg_val_loss = val_loss / len(val_loader)
-        train_acc = correct_train / total_train
-        val_acc = correct_val / total_val
-
-        train_losses.append(train_loss / len(train_loader))
-        val_losses.append(avg_val_loss)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                total_val += labels.size(0)
+                correct_val += (predicted == labels).sum().item()
+                
+        val_loss = val_loss / len(val_loader)
+        val_acc = 100 * correct_val / total_val
+        
+        train_losses.append(train_loss)
+        val_losses.append(val_loss)
         train_accuracies.append(train_acc)
         val_accuracies.append(val_acc)
-
-        print(f"Epoch {epoch+1}/{epochs} | "f"Loss: [Tr {train_losses[-1]:.4f}, Val {avg_val_loss:.4f}] | "f"Acc: [Tr {train_acc*100:.2f}%, Val {val_acc*100:.2f}%]")
-
-        early_stopping(avg_val_loss, model)
-        if early_stopping.early_stop:
+        
+        print(f"Epoch {epoch+1}/{epochs} | Loss: [Tr {train_loss:.4f}, Val {val_loss:.4f}] | Acc: [Tr {train_acc:.2f}%, Val {val_acc:.2f}%]")
+        
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+            os.makedirs("/content/drive/MyDrive/Dataset_Magang/outputs", exist_ok=True)
+            torch.save(model.state_dict(), "/content/drive/MyDrive/Dataset_Magang/outputs/bp_classifier_model.pth")
+        else:
+            patience_counter += 1
+            
+        if patience_counter >= patience:
             print(f"Early stopping aktif pada epoch {epoch+1}!")
             break
-
+            
     return train_losses, val_losses, train_accuracies, val_accuracies
