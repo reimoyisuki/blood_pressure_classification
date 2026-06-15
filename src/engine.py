@@ -31,16 +31,21 @@ class EarlyStopping:
         torch.save(model.state_dict(), save_path)
         print(f" -> Model terbaik ditemukan & disimpan ke Drive! (Val Loss: {self.best_loss:.4f})")
 
-def train_model(model, train_loader, val_loader, device, output_dir, epochs=50, lr=1e-3):
-    # Masukkan output_dir ke EarlyStopping
-    early_stopping = EarlyStopping(output_dir=output_dir, patience=7, min_delta=0.001)
-
-    weights = torch.tensor([1.0, 5.0, 15.0]).to(device)
-    criterion = nn.CrossEntropyLoss(weight=weights)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-
-    train_losses, val_losses = [], []
-    train_accs, val_accs = [], []
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
+    
+    # Masukkan bobot hukuman ke Loss Function
+    if class_weights is not None:
+        class_weights = class_weights.to(device)
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
+        
+    # Gunakan AdamW karena lebih stabil dari Adam biasa untuk sinyal
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    
+    best_val_loss = float('inf')
+    patience = 5
+    patience_counter = 0
 
     for epoch in range(epochs):
         # TRAIN

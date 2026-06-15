@@ -19,7 +19,7 @@ if __name__ == "__main__":
     
     # 1. LOAD DATA
     print("--- 1. Memuat dan Memproses Data ---")
-    train_loader, val_loader, test_loader = get_classification_loaders(
+    train_loader, val_loader, test_loader, class_weights = get_classification_loaders(
         DATA_PATH, batch_size=16, val_split=0.15, test_split=0.15
     )
     
@@ -30,9 +30,7 @@ if __name__ == "__main__":
     # 3. TRAINING
     print("\n--- 3. Memulai Proses Training ---")
     train_loss, val_loss, train_acc, val_acc = train_model(
-        model, train_loader, val_loader, device, 
-        output_dir=DRIVE_OUTPUT_DIR, 
-        epochs=50, lr=1e-3
+        model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=class_weights
     )
     
     # 4. PLOT TRAINING
