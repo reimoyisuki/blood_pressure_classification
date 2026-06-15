@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None, output_dir="outputs"):
+def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, class_weights=None):
     
     if class_weights is not None:
         class_weights = class_weights.to(device)
@@ -14,7 +14,9 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     
     best_val_loss = float('inf')
-    patience = 6 # Naikkan sedikit agar tidak terlalu cepat berhenti
+    
+    # PERBAIKAN: Naikkan kesabaran (patience) menjadi 15 agar tidak berhenti terlalu cepat
+    patience = 15 
     patience_counter = 0
     
     # Inisialisasi wadah metrik

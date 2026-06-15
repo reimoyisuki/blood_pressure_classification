@@ -36,7 +36,6 @@ def evaluate_and_plot_metrics(model, test_loader, device, output_dir):
     plt.show()
     print(f"-> Gambar Confusion Matrix disimpan ke {cm_path}")
     
-    # 2. HASIL METRIK KLINIS (.jsn)
     # Gunakan output_dict=True agar hasil berbentuk dictionary
     report_dict = classification_report(
         all_targets, all_preds, 

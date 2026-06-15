@@ -69,16 +69,17 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
         temp_signals, temp_labels, test_size=test_ratio_from_temp, stratify=temp_labels, random_state=42
     )
 
+    class_counts = np.array([labels.count(0), labels.count(1), labels.count(2)])
+    smoothed_weights = 1.0 / np.sqrt(class_counts)
+    smoothed_weights = smoothed_weights / np.sum(smoothed_weights) * 3.0
+    class_weights_tensor = torch.tensor(smoothed_weights, dtype=torch.float32)
+
     train_dataset = PPGClassificationDataset(train_signals, train_labels)
     val_dataset = PPGClassificationDataset(val_signals, val_labels)
     test_dataset = PPGClassificationDataset(test_signals, test_labels)
 
-    # Buat sampler seimbang: oversample kelas minoritas agar model melihatnya lebih sering
-    sample_weights = [1.0 / class_counts[label] for label in train_labels]
-    sample_weights = torch.DoubleTensor(sample_weights)
-    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
+    # PERBAIKAN: Hapus sampler, kembalikan ke shuffle=True untuk training
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
