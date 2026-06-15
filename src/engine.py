@@ -13,21 +13,19 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
         
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     
-    best_val_loss = float('inf')
+    # LR Scheduler untuk ngerem saat loss mulai stuck
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
     
-    # PERBAIKAN: Naikkan kesabaran (patience) menjadi 15 agar tidak berhenti terlalu cepat
+    best_val_loss = float('inf')
     patience = 15 
     patience_counter = 0
     
-    # Inisialisasi wadah metrik
     train_losses, val_losses = [], []
     train_accuracies, val_accuracies = [], []
 
     for epoch in range(epochs):
         model.train()
-        running_loss = 0.0
-        correct = 0
-        total = 0
+        running_loss, correct, total = 0.0, 0, 0
         
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -48,9 +46,7 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
         train_acc = 100 * correct / total
         
         model.eval()
-        val_loss = 0.0
-        correct_val = 0
-        total_val = 0
+        val_loss, correct_val, total_val = 0.0, 0, 0
         
         with torch.no_grad():
             for inputs, labels in val_loader:
@@ -65,6 +61,9 @@ def train_model(model, train_loader, val_loader, device, epochs=50, lr=1e-4, cla
                 
         val_loss = val_loss / len(val_loader)
         val_acc = 100 * correct_val / total_val
+        
+        # PANGGIL SCHEDULER 
+        scheduler.step(val_loss)
         
         train_losses.append(train_loss)
         val_losses.append(val_loss)
