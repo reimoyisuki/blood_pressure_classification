@@ -1,6 +1,3 @@
-# blood_pressure_classification
-
-
 # Klasifikasi Tingkat Tekanan Darah Berbasis Sinyal Photoplethysmogram (PPG)
 
 Repositori ini berisi implementasi model pembelajaran mendalam (Deep Learning) dengan arsitektur gabungan Convolutional Neural Network (CNN) dan Long Short-Term Memory (LSTM) untuk melakukan klasifikasi tingkat tekanan darah (hipertensi vs. normal/prehipertensi) secara langsung dari sinyal mentah Photoplethysmogram (PPG). Proyek ini dirancang secara modular agar mudah dikembangkan, diintegrasikan ke perangkat berbasis komputasi tepi (edge computing), serta dijalankan secara fleksibel di lingkungan seperti Google Colab.
