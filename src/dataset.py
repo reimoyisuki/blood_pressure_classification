@@ -1,7 +1,7 @@
 import os
 import torch
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from src.preprocessing import preprocess_ppg
 from sklearn.model_selection import train_test_split
 
@@ -14,9 +14,8 @@ class PPGClassificationDataset(Dataset):
         return len(self.signals)
 
     def __getitem__(self, idx):
-        # Format untuk CNN1D: (batch, channel, seq_len)
-        signal = torch.tensor(self.signals[idx], dtype=torch.float32).unsqueeze(0) 
-        # Target klasifikasi butuh format LongTensor (Integer)
+        # Karena output STFT sudah 2D (65, time_steps), gausa unsqueeze(0) lagi
+        signal = torch.tensor(self.signals[idx], dtype=torch.float32) 
         label = torch.tensor(self.labels[idx], dtype=torch.long)
         return signal, label
 
@@ -38,7 +37,7 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
             continue
 
         for idx in range(len(ppg_data)):
-            processed = preprocess_ppg(ppg_data[idx])
+            processed = preprocess_ppg(ppg_data[idx], fs=1000)
             sbp, dbp = labels_data[idx]
             
             # RULE KLASIFIKASI 3 RENTANG
@@ -52,7 +51,6 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
             signals.append(processed)
             labels.append(label_class)
 
-    # Print Statistik Data Keseluruhan (Sebelum di-split)
     print("="*40)
     print(" STATISTIK DATA KESELURUHAN (POPULASI) ")
     print("="*40)
@@ -62,25 +60,31 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
     print(f"Hipertensi II (2)   : {labels.count(2)}")
     print("="*40)
     
-    # STRATIFIED SPLIT
-    # Pisahkan Train (70%) dengan sisa Val+Test (30%)
     test_val_ratio = val_split + test_split
-    train_signals, temp_signals, train_labels, temp_labels = train_test_split(
-        signals, labels, test_size=test_val_ratio, stratify=labels, random_state=42
-    )
+    train_signals, temp_signals, train_labels, temp_labels = train_test_split(signals, labels, test_size=test_val_ratio, stratify=labels, random_state=42)
 
-    # Pisahkan sisa data (Temp) menjadi Val (15%) dan Test (15%) -> Proporsi 50:50 dari sisa
     test_ratio_from_temp = test_split / test_val_ratio
-    val_signals, test_signals, val_labels, test_labels = train_test_split(
-        temp_signals, temp_labels, test_size=test_ratio_from_temp, stratify=temp_labels, random_state=42
-    )
+    val_signals, test_signals, val_labels, test_labels = train_test_split(temp_signals, temp_labels, test_size=test_ratio_from_temp, stratify=temp_labels, random_state=42)
 
-    # Masukkan ke Dataset & DataLoader
     train_dataset = PPGClassificationDataset(train_signals, train_labels)
     val_dataset = PPGClassificationDataset(val_signals, val_labels)
     test_dataset = PPGClassificationDataset(test_signals, test_labels)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # Hitung jumlah tiap kelas di data training
+    class_counts = np.array([train_labels.count(0), train_labels.count(1), train_labels.count(2)])
+    
+    # Berikan bobot yang lebih besar untuk kelas yang minoritas
+    class_weights = 1.0 / (class_counts + 1e-8)
+    
+    # Tempelkan bobot tersebut ke masing-masing sampel
+    samples_weights = np.array([class_weights[t] for t in train_labels])
+    samples_weights = torch.from_numpy(samples_weights)
+    
+    # Buat sampler (AI akan dipaksa mengambil kelas 1 dan 2 lebih sering agar seimbang)
+    sampler = WeightedRandomSampler(weights=samples_weights.type('torch.DoubleTensor'), num_samples=len(samples_weights), replacement=True)
+
+    # Masukkan sampler ke DataLoader (PENTING: shuffle harus False jika memakai sampler)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
