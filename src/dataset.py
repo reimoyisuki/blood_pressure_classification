@@ -1,7 +1,7 @@
 import os
 import torch
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from src.preprocessing import preprocess_ppg
 from sklearn.model_selection import train_test_split
 
@@ -66,8 +66,19 @@ def get_classification_loaders(data_path, batch_size=16, val_split=0.15, test_sp
     val_dataset = PPGClassificationDataset(val_signals, val_labels)
     test_dataset = PPGClassificationDataset(test_signals, test_labels)
 
-    # 2. DataLoader dikembalikan ke mode Normal (Tanpa Sampler)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # 2. Buat sampler seimbang (oversample minoritas) untuk pelatihan
+    #    sehingga model mendapat contoh kelas minoritas lebih sering.
+    #    Gunakan replacement=True agar sampling stabil ketika jumlah minoritas kecil.
+    try:
+        sample_weights = [1.0 / class_counts[label] for label in train_labels]
+    except Exception:
+        # fallback: jika ada kesalahan, gunakan bobot dari class_weights_tensor
+        sample_weights = [float(class_weights_tensor[label]) for label in train_labels]
+
+    sample_weights = torch.DoubleTensor(sample_weights)
+    sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=sampler)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
